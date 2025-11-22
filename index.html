@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>掃描即播放 — MP3 播放頁</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#9aa6b2;
+    }
+    html,body{height:100%; margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "Helvetica Neue", Arial;}
+    body{display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#071129 0%, #081827 100%); color:white;}
+    .card{width:min(760px,96%); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:14px; padding:20px; box-shadow: 0 8px 30px rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.03);}
+    h1{margin:0 0 6px 0; font-size:1.35rem;}
+    p.lead{margin:0 0 18px 0; color:var(--muted);}
+    .player{display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+    .art{width:120px; height:120px; border-radius:10px; background:linear-gradient(135deg, rgba(125,211,252,0.08), rgba(59,130,246,0.06)); display:flex; align-items:center; justify-content:center; font-weight:600; color:var(--accent); font-size:0.95rem; border:1px solid rgba(125,211,252,0.08);}
+    .controls{flex:1; min-width:200px;}
+    .controls .title{font-weight:600;}
+    .controls .meta{color:var(--muted); font-size:0.9rem; margin-bottom:10px;}
+    audio{width:100%; outline:none;}
+    .btns{display:flex; gap:8px; margin-top:10px;}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.06); color:var(--accent); padding:8px 12px; border-radius:8px; cursor:pointer;}
+    .hint{margin-top:14px; color:var(--muted); font-size:0.9rem;}
+    .qr-wrap{margin-top:16px; display:flex; gap:12px; align-items:center;}
+    .qr-img{width:88px; height:88px; background:#fff; padding:8px; border-radius:8px; display:flex; align-items:center; justify-content:center;}
+    input.url{width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:white;}
+    small.note{color:var(--muted);}
+    @media (max-width:520px){
+      .player{flex-direction:column; align-items:stretch;}
+      .art{width:100%; height:120px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>掃描即播放 — MP3 播放頁</h1>
+    <p class="lead">此頁會載入同目錄下的 <code>audio.mp3</code>（或填入公開 MP3 連結），供手機掃描後直接播放。</p>
+
+    <div class="player">
+      <div class="art" aria-hidden="true">MP3</div>
+
+      <div class="controls">
+        <div class="title" id="titleText">未命名音檔</div>
+        <div class="meta" id="metaText">掃描後點播放即可（部分瀏覽器禁止自動有聲播放，請手動按播放）</div>
+
+        <!-- 預設 local audio 檔（若要使用遠端 URL，請使用下方輸入框） -->
+        <audio id="Starlight Atlas" controls preload="none">
+          <source id="Starlight Atlas Source" src="Starlight Atlas.mp3" type="Starlight Atlas/mpeg">
+          您的瀏覽器不支援 audio 元素。
+        </audio>
+
+        <div class="btns">
+          <button id="playBtn" type="button">播放 / 暫停</button>
+          <button id="downloadBtn" type="button">下載音檔</button>
+          <button id="openBtn" type="button">在新分頁開啟音檔</button>
+        </div>
+
+        <div class="hint">
+          <div style="margin-top:12px;">
+            <label><small class="note">或貼入公開 MP3 連結（HTTP/HTTPS）：</small></label>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input class="url" id="urlInput" placeholder="https://.../your-Starlight Atlas.mp3" />
+              <button id="setUrlBtn">使用此連結</button>
+            </div>
+          </div>
+
+          <div class="qr-wrap" style="margin-top:8px;">
+            <div><small class="note">頁面公開網址：把本頁放到主機後，將網址用來產生 QR</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; color:var(--muted); font-size:0.9rem;">
+      <div>提示：若要手機掃描即播放，建議把本 `index.html` 與 `audio.mp3` 放同一個公開靜態主機（GitHub Pages / Netlify / Vercel 等）。</div>
+    </div>
+  </div>
+
+<script>
+  const StarlightAtlas = document.getElementById('Starlight Atlas');
+  const source = document.getElementById('Starlight Atlas Source');
+  const playBtn = document.getElementById('playBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const openBtn = document.getElementById('openBtn');
+  const urlInput = document.getElementById('urlInput');
+  const setUrlBtn = document.getElementById('setUrlBtn');
+  const titleText = document.getElementById('titleText');
+  const metaText = document.getElementById('metaText');
+
+  function updateMetaFromSrc(src){
+    if(!src) return;
+    try{
+      const name = src.split('/').pop().split('?')[0];
+      titleText.textContent = decodeURIComponent(name) || '音檔';
+      metaText.textContent = src;
+    }catch(e){}
+  }
+
+  // 預設載入 local file 名稱
+  updateMetaFromSrc(source.src || 'Starlight Atlas.mp3');
+
+  playBtn.addEventListener('click', () => {
+    if(StarlightAtlas.paused) {
+      StarlightAtlas.play().catch(e => {
+        // 自動播放可能被阻擋
+        alert('播放被阻擋，請點擊瀏覽器播放按鈕或允許自動播放。');
+      });
+    } else {
+      audio.pause();
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const src = source.src;
+    if(!src) return alert('找不到音檔來源');
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = src.split('/').pop().split('?')[0] || 'Starlight Atlas.mp3';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+
+  openBtn.addEventListener('click', () => {
+    const src = source.src;
+    if(!src) return alert('找不到音檔來源');
+    window.open(src, '_blank');
+  });
+
+  setUrlBtn.addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if(!url) return alert('請輸入 mp3 的公開網址');
+    source.src = url;
+    StarlightAtlas.load();
+    updateMetaFromSrc(url);
+  });
+
+  // 支援從 query string 將 mp3 url 帶入（方便 QR 用法）
+  (function(){
+    const params = new URLSearchParams(location.search);
+    const mp3 = params.get('mp3') || params.get('Starlight Atlas');
+    if(mp3){
+      source.src = mp3;
+      StarlightAtlas.load();
+      updateMetaFromSrc(mp3);
+      // 將輸入框也填上
+      urlInput.value = mp3;
+    }
+  })();
+</script>
+</body>
+</html>
